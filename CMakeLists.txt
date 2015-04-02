@@ -51,6 +51,7 @@
 
 
 cmake_minimum_required(VERSION 2.6)
+set(BUILD_FRAMEWORK OFF CACHE INTERNAL "" FORCE)
 
 # CMAKE_TOOLCHAIN_FILE must be set before `project' is called, which
 # configures the base build environment and references the toolchain file
@@ -101,6 +102,8 @@ set(VERSION_MAJOR "2")
 set(VERSION_MINOR "5")
 set(VERSION_PATCH "5")
 set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
+
+SET(SCI_FREETYPE_LIBRARY freetype CACHE INTERNAL "Freetype library name." FORCE)
 
 # Compiler definitions for building the library
 add_definitions(-DFT2_BUILD_LIBRARY)
@@ -195,18 +198,20 @@ if (BUILD_FRAMEWORK)
   )
 endif ()
 
-add_library(freetype
+add_library(${SCI_FREETYPE_LIBRARY}
+  STATIC
   ${PUBLIC_HEADERS}
   ${PUBLIC_CONFIG_HEADERS}
   ${PRIVATE_HEADERS}
   ${BASE_SRCS}
 )
+set(SCI_FREETYPE_INCLUDE ${PROJECT_SOURCE_DIR}/include;${PROJECT_BINARY_DIR}/include)
 
 if (BUILD_FRAMEWORK)
   set_property(SOURCE ${PUBLIC_CONFIG_HEADERS}
     PROPERTY MACOSX_PACKAGE_LOCATION Headers/config
   )
-  set_target_properties(freetype PROPERTIES
+  set_target_properties(${SCI_FREETYPE_LIBRARY} PROPERTIES
     FRAMEWORK TRUE
     MACOSX_FRAMEWORK_INFO_PLIST builds/mac/freetype-Info.plist
     PUBLIC_HEADER "${PUBLIC_HEADERS}"
@@ -214,40 +219,43 @@ if (BUILD_FRAMEWORK)
   )
 endif ()
 
+configure_file(FreetypeConfig.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/FreetypeConfig.cmake" @ONLY)
+export(TARGETS ${SCI_FREETYPE_LIBRARY} FILE FreetypeExports.cmake)
+
 # Installations
 # Note the trailing slash in the argument to the `DIRECTORY' directive
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
-  DESTINATION include/freetype2
-  PATTERN "internal" EXCLUDE
-)
-install(TARGETS freetype
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  FRAMEWORK DESTINATION Library/Frameworks
-)
-
-# Packaging
-# CPack version numbers for release tarball name.
-set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
-set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
-set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH}})
-if (NOT DEFINED CPACK_PACKAGE_DESCRIPTION_SUMMARY)
-  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${CMAKE_PROJECT_NAME}")
-endif ()
-if (NOT DEFINED CPACK_SOURCE_PACKAGE_FILE_NAME)
-  set(CPACK_SOURCE_PACKAGE_FILE_NAME
-    "${CMAKE_PROJECT_NAME}-${PROJECT_VERSION}-r${PROJECT_REV}"
-    CACHE INTERNAL "tarball basename"
-  )
-endif ()
-set(CPACK_SOURCE_GENERATOR TGZ)
-set(CPACK_SOURCE_IGNORE_FILES
-  "/CVS/;/.svn/;.swp$;.#;/#;/build/;/serial/;/ser/;/parallel/;/par/;~;/preconfig.out;/autom4te.cache/;/.config")
-set(CPACK_GENERATOR TGZ)
-include(CPack)
-
+#install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
+#  DESTINATION include/freetype2
+#  PATTERN "internal" EXCLUDE
+#)
+#install(TARGETS freetype
+#  RUNTIME DESTINATION bin
+#  LIBRARY DESTINATION lib
+#  ARCHIVE DESTINATION lib
+#  FRAMEWORK DESTINATION Library/Frameworks
+#)
+#
+## Packaging
+## CPack version numbers for release tarball name.
+#set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
+#set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
+#set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH}})
+#if (NOT DEFINED CPACK_PACKAGE_DESCRIPTION_SUMMARY)
+#  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${CMAKE_PROJECT_NAME}")
+#endif ()
+#if (NOT DEFINED CPACK_SOURCE_PACKAGE_FILE_NAME)
+#  set(CPACK_SOURCE_PACKAGE_FILE_NAME
+#    "${CMAKE_PROJECT_NAME}-${PROJECT_VERSION}-r${PROJECT_REV}"
+#    CACHE INTERNAL "tarball basename"
+#  )
+#endif ()
+#set(CPACK_SOURCE_GENERATOR TGZ)
+#set(CPACK_SOURCE_IGNORE_FILES
+#  "/CVS/;/.svn/;.swp$;.#;/#;/build/;/serial/;/ser/;/parallel/;/par/;~;/preconfig.out;/autom4te.cache/;/.config")
+#set(CPACK_GENERATOR TGZ)
+#include(CPack)
+#
 # add make dist target
-add_custom_target(dist COMMAND ${CMAKE_MAKE_PROGRAM} package_source)
-
+#add_custom_target(dist COMMAND ${CMAKE_MAKE_PROGRAM} package_source)
+#
 # eof

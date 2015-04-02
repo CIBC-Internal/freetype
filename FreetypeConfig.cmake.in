@@ -1,0 +1,7 @@
+# Compute paths
+#get_filename_component(FOOBAR_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+set(SCI_FREETYPE_INCLUDE "@SCI_FREETYPE_INCLUDE@")
+ 
+# These are IMPORTED targets created by FooBarTargets.cmake
+set(SCI_FREETYPE_LIBRARY @SCI_FREETYPE_LIBRARY@)
