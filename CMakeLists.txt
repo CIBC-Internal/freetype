@@ -219,6 +219,9 @@ if (BUILD_FRAMEWORK)
   )
 endif ()
 
+set(SCI_FREETYPE_LIBRARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(FREETYPE_USE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/UseFreetype.cmake")
+
 configure_file(FreetypeConfig.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/FreetypeConfig.cmake" @ONLY)
 export(TARGETS ${SCI_FREETYPE_LIBRARY} FILE FreetypeExports.cmake)
 
