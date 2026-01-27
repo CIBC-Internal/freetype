@@ -50,215 +50,58 @@
 #   developer team.
 
 
-cmake_minimum_required(VERSION 2.6)
-set(BUILD_FRAMEWORK OFF CACHE INTERNAL "" FORCE)
+cmake_minimum_required(VERSION 3.16)
+project(freetype LANGUAGES C)
 
-# CMAKE_TOOLCHAIN_FILE must be set before `project' is called, which
-# configures the base build environment and references the toolchain file
-if (APPLE)
-  if (DEFINED IOS_PLATFORM)
-    if (NOT "${IOS_PLATFORM}" STREQUAL "OS"
-        AND NOT "${IOS_PLATFORM}" STREQUAL "SIMULATOR")
-      message(FATAL_ERROR
-        "IOS_PLATFORM must be set to either OS or SIMULATOR")
-    endif ()
-    if (NOT "${CMAKE_GENERATOR}" STREQUAL "Xcode")
-      message(AUTHOR_WARNING
-        "You should use Xcode generator with IOS_PLATFORM enabled to get Universal builds.")
-    endif ()
-    if (BUILD_SHARED_LIBS)
-      message(FATAL_ERROR
-        "BUILD_SHARED_LIBS can not be on with IOS_PLATFORM enabled")
-    endif ()
-    if (BUILD_FRAMEWORK)
-      message(FATAL_ERROR
-        "BUILD_FRAMEWORK can not be on with IOS_PLATFORM enabled")
-    endif ()
-
-    # iOS only uses static libraries
-    set(BUILD_SHARED_LIBS OFF)
-
-    set(CMAKE_TOOLCHAIN_FILE
-      ${PROJECT_SOURCE_DIR}/builds/cmake/iOS.cmake)
-  endif ()
-else ()
-  if (DEFINED IOS_PLATFORM)
-    message(FATAL_ERROR "IOS_PLATFORM is not supported on this platform")
-  endif ()
-endif ()
-
-project(freetype)
-
-if (BUILD_FRAMEWORK)
-  if (NOT "${CMAKE_GENERATOR}" STREQUAL "Xcode")
-    message(FATAL_ERROR
-      "You should use Xcode generator with BUILD_FRAMEWORK enabled")
-  endif ()
-  set(CMAKE_OSX_ARCHITECTURES "$(ARCHS_STANDARD_32_64_BIT)")
-  set(BUILD_SHARED_LIBS ON)
-endif ()
-
-set(VERSION_MAJOR "2")
-set(VERSION_MINOR "5")
-set(VERSION_PATCH "5")
-set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
-
-SET(SCI_FREETYPE_LIBRARY freetype CACHE INTERNAL "Freetype library name." FORCE)
-
-# Compiler definitions for building the library
+# Build Freetype as a static library
 add_definitions(-DFT2_BUILD_LIBRARY)
 
-# Specify library include directories
-include_directories("${PROJECT_SOURCE_DIR}/include")
+# Public include directory
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Create the configuration file
-message(STATUS "Creating directory, ${PROJECT_BINARY_DIR}/include/freetype2.")
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/include/freetype2)
+# Auto-generated ftconfig.h
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/freetype2)
 
-# For the auto-generated ftconfig.h file
-include_directories(BEFORE "${PROJECT_BINARY_DIR}/include/freetype2")
-message(STATUS "Creating ${PROJECT_BINARY_DIR}/include/freetype2/ftconfig.h.")
 execute_process(
-  COMMAND sed -e "s/FT_CONFIG_OPTIONS_H/<ftoption.h>/" -e "s/FT_CONFIG_STANDARD_LIBRARY_H/<ftstdlib.h>/" -e "s?/undef ?#undef ?"
-  INPUT_FILE ${PROJECT_SOURCE_DIR}/builds/unix/ftconfig.in
-  OUTPUT_FILE ${PROJECT_BINARY_DIR}/include/freetype2/ftconfig.h
+  COMMAND sed -e "s/FT_CONFIG_OPTIONS_H/<ftoption.h>/" 
+              -e "s/FT_CONFIG_STANDARD_LIBRARY_H/<ftstdlib.h>/" 
+              -e "s?/undef ?#undef ?"
+  INPUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/builds/unix/ftconfig.in
+  OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/include/freetype2/ftconfig.h
 )
 
+include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/include/freetype2)
+
+# Collect headers
 file(GLOB PUBLIC_HEADERS "include/*.h")
 file(GLOB PUBLIC_CONFIG_HEADERS "include/config/*.h")
 file(GLOB PRIVATE_HEADERS "include/internal/*.h")
 
-set(BASE_SRCS
-  src/autofit/autofit.c
-  src/base/ftadvanc.c
-  src/base/ftbbox.c
-  src/base/ftbdf.c
-  src/base/ftbitmap.c
-  src/base/ftcalc.c
-  src/base/ftcid.c
-  src/base/ftdbgmem.c
-  src/base/ftdebug.c
-  src/base/ftfstype.c
-  src/base/ftgasp.c
-  src/base/ftgloadr.c
-  src/base/ftglyph.c
-  src/base/ftgxval.c
-  src/base/ftinit.c
-  src/base/ftlcdfil.c
-  src/base/ftmm.c
-  src/base/ftobjs.c
-  src/base/ftotval.c
-  src/base/ftoutln.c
-  src/base/ftpatent.c
-  src/base/ftpfr.c
-  src/base/ftrfork.c
-  src/base/ftsnames.c
-  src/base/ftstream.c
-  src/base/ftstroke.c
-  src/base/ftsynth.c
-  src/base/ftsystem.c
-  src/base/fttrigon.c
-  src/base/fttype1.c
-  src/base/ftutil.c
-  src/base/ftwinfnt.c
-  src/base/ftxf86.c
-  src/bdf/bdf.c
-  src/bzip2/ftbzip2.c
-  src/cache/ftcache.c
-  src/cff/cff.c
-  src/cid/type1cid.c
-  src/gzip/ftgzip.c
-  src/lzw/ftlzw.c
-  src/pcf/pcf.c
-  src/pfr/pfr.c
-  src/psaux/psaux.c
-  src/pshinter/pshinter.c
-  src/psnames/psmodule.c
-  src/raster/raster.c
-  src/sfnt/sfnt.c
-  src/smooth/smooth.c
-  src/truetype/truetype.c
-  src/type1/type1.c
-  src/type42/type42.c
-  src/winfonts/winfnt.c
+# Collect sources
+file(GLOB_RECURSE FREETYPE_SOURCES
+  src/*.c
 )
 
-include_directories("src/truetype")
-include_directories("src/sfnt")
-include_directories("src/autofit")
-include_directories("src/smooth")
-include_directories("src/raster")
-include_directories("src/psaux")
-include_directories("src/psnames")
-
-if (BUILD_FRAMEWORK)
-  set(BASE_SRCS
-    ${BASE_SRCS}
-    builds/mac/freetype-Info.plist
-  )
-endif ()
-
-add_library(${SCI_FREETYPE_LIBRARY}
-  STATIC
+# Build the library
+add_library(freetype STATIC
   ${PUBLIC_HEADERS}
   ${PUBLIC_CONFIG_HEADERS}
   ${PRIVATE_HEADERS}
-  ${BASE_SRCS}
+  ${FREETYPE_SOURCES}
 )
-set(SCI_FREETYPE_INCLUDE ${PROJECT_SOURCE_DIR}/include;${PROJECT_BINARY_DIR}/include)
 
-if (BUILD_FRAMEWORK)
-  set_property(SOURCE ${PUBLIC_CONFIG_HEADERS}
-    PROPERTY MACOSX_PACKAGE_LOCATION Headers/config
-  )
-  set_target_properties(${SCI_FREETYPE_LIBRARY} PROPERTIES
-    FRAMEWORK TRUE
-    MACOSX_FRAMEWORK_INFO_PLIST builds/mac/freetype-Info.plist
-    PUBLIC_HEADER "${PUBLIC_HEADERS}"
-    XCODE_ATTRIBUTE_INSTALL_PATH "@rpath"
-  )
-endif ()
+# Ensure PIC for static builds
+set_target_properties(freetype PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-set(SCI_FREETYPE_LIBRARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
-set(FREETYPE_USE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/UseFreetype.cmake")
+# Install headers
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+  DESTINATION include/freetype2
+  PATTERN "internal" EXCLUDE
+)
 
-configure_file(FreetypeConfig.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/FreetypeConfig.cmake" @ONLY)
-export(TARGETS ${SCI_FREETYPE_LIBRARY} FILE FreetypeExports.cmake)
-
-# Installations
-# Note the trailing slash in the argument to the `DIRECTORY' directive
-#install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
-#  DESTINATION include/freetype2
-#  PATTERN "internal" EXCLUDE
-#)
-#install(TARGETS freetype
-#  RUNTIME DESTINATION bin
-#  LIBRARY DESTINATION lib
-#  ARCHIVE DESTINATION lib
-#  FRAMEWORK DESTINATION Library/Frameworks
-#)
-#
-## Packaging
-## CPack version numbers for release tarball name.
-#set(CPACK_PACKAGE_VERSION_MAJOR ${VERSION_MAJOR})
-#set(CPACK_PACKAGE_VERSION_MINOR ${VERSION_MINOR})
-#set(CPACK_PACKAGE_VERSION_PATCH ${VERSION_PATCH}})
-#if (NOT DEFINED CPACK_PACKAGE_DESCRIPTION_SUMMARY)
-#  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${CMAKE_PROJECT_NAME}")
-#endif ()
-#if (NOT DEFINED CPACK_SOURCE_PACKAGE_FILE_NAME)
-#  set(CPACK_SOURCE_PACKAGE_FILE_NAME
-#    "${CMAKE_PROJECT_NAME}-${PROJECT_VERSION}-r${PROJECT_REV}"
-#    CACHE INTERNAL "tarball basename"
-#  )
-#endif ()
-#set(CPACK_SOURCE_GENERATOR TGZ)
-#set(CPACK_SOURCE_IGNORE_FILES
-#  "/CVS/;/.svn/;.swp$;.#;/#;/build/;/serial/;/ser/;/parallel/;/par/;~;/preconfig.out;/autom4te.cache/;/.config")
-#set(CPACK_GENERATOR TGZ)
-#include(CPack)
-#
-# add make dist target
-#add_custom_target(dist COMMAND ${CMAKE_MAKE_PROGRAM} package_source)
-#
-# eof
+# Install library
+install(TARGETS freetype
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
